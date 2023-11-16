@@ -63,6 +63,7 @@ export const ResolvingForm = () => {
             shortString.decodeShortString(callResponse.res[2]),
           domain
         );
+        console.log("serverRes", serverRes);
         if (serverRes.data) {
           const callResponse2 = await callContract(contract, encoded, [
             serverRes.data.address,
@@ -74,6 +75,7 @@ export const ResolvingForm = () => {
           else if (callResponse2.error) setError(String(callResponse2.error));
           else setError("Error while resolving domain");
         } else if (serverRes.error) {
+          console.log(serverRes);
           setError(String(serverRes.error));
         } else {
           setError("Error while querying server");
@@ -106,8 +108,10 @@ export const ResolvingForm = () => {
   const queryServer = async (serverUri: string, domain: string) => {
     try {
       const response = await fetch(`${serverUri}/resolve?domain=${domain}`);
+
       if (!response.ok) {
-        throw new Error("Error while querying server");
+        const errorResponse = await response.text();
+        throw new Error(errorResponse || "Error while querying server");
       }
       const data = await response.json();
       return { data };
