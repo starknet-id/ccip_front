@@ -59,7 +59,8 @@ export const ResolvingForm = () => {
       const failureReason = shortString.decodeShortString(callResponse.res[0]);
       if (failureReason === "offchain_resolving") {
         const serverRes = await queryServer(
-          shortString.decodeShortString(callResponse.res[1]),
+          shortString.decodeShortString(callResponse.res[1]) +
+            shortString.decodeShortString(callResponse.res[2]),
           domain
         );
         if (serverRes.data) {
