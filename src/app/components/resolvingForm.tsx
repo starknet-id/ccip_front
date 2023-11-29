@@ -4,7 +4,7 @@ import { TextField } from "@mui/material";
 import { useMemo, useState } from "react";
 import btnStyles from "../../../styles/button.module.css";
 import { useIsValidDomain } from "../hooks/useIsValidDomain";
-import { Abi, Contract, Provider, constants, shortString } from "starknet";
+import { Abi, Contract, Provider, shortString } from "starknet";
 import naming_abi from "../../../abi/naming.json";
 import { utils } from "starknetid.js";
 import { decimalToHex, extractArrayFromErrorMessage } from "../utils/utils";
@@ -24,11 +24,8 @@ export const ResolvingForm = () => {
   // We use Sequencer for now as the RPC provider is not returning detailed error messages
   const provider = useMemo(() => {
     return new Provider({
-      sequencer: {
-        network:
-          process.env.NEXT_PUBLIC_IS_TESTNET === "true"
-            ? constants.NetworkName.SN_GOERLI
-            : constants.NetworkName.SN_MAIN,
+      rpc: {
+        nodeUrl: "https://rpc.starknet-testnet.lava.build",
       },
     });
   }, []);
@@ -48,6 +45,7 @@ export const ResolvingForm = () => {
   };
 
   const submit = async () => {
+    setError(null);
     if (!isDomainValid) return;
     const encoded = domain
       ? utils.encodeDomain(domain).map((elem) => elem.toString())
@@ -56,19 +54,18 @@ export const ResolvingForm = () => {
     const callResponse = await callContract(contract, encoded, []);
 
     if (callResponse.res) {
-      const failureReason = shortString.decodeShortString(callResponse.res[0]);
+      const failureReason = callResponse.res[0];
       if (failureReason === "offchain_resolving") {
         const serverRes = await queryServer(
-          shortString.decodeShortString(callResponse.res[1]) +
-            shortString.decodeShortString(callResponse.res[2]),
+          callResponse.res[1] + callResponse.res[2],
           domain
         );
-        console.log("serverRes", serverRes);
         if (serverRes.data) {
           const callResponse2 = await callContract(contract, encoded, [
             serverRes.data.address,
             serverRes.data.r,
             serverRes.data.s,
+            serverRes.data.max_validity,
           ]);
           if (callResponse2.address)
             setAddress(decimalToHex(callResponse2.address as string));

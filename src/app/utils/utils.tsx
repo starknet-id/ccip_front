@@ -3,15 +3,14 @@
 import BN from "bn.js";
 
 export function extractArrayFromErrorMessage(errorMsg: string) {
-  const match = errorMsg.match(
-    /Execution was reverted; failure reason: (\[.*?\])/
-  );
+  const failureReasonPattern = /Failure reason: "(.*?)"/;
+  const match = errorMsg.match(failureReasonPattern);
+
   if (match && match[1]) {
-    // Manually parse the elements as they are not valid JSON
-    const arrayString = match[1].slice(1, -1); // Remove the surrounding brackets
-    const elements = arrayString.split(", ").map((el) => el.trim());
-    return elements;
+    const values = match[1].split(",").map((value) => value.trim());
+    return values;
   }
+
   return null;
 }
 
