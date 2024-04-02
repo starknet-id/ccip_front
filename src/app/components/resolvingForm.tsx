@@ -30,8 +30,12 @@ export const ResolvingForm = () => {
   const submit = async () => {
     setError(null);
     if (!isDomainValid) return;
-    const response = await getAddressFromStarkName(domain);
-    setAddress(response);
+    try {
+      const response = await getAddressFromStarkName(domain);
+      setAddress(response);
+    } catch (error: any) {
+      setError(error.message);
+    }
   };
 
   // todo: call starknetid.js function instead of this function
@@ -130,12 +134,13 @@ export const ResolvingForm = () => {
         variant="outlined"
         onChange={onChange}
         label={
-          isDomainValid != true
+          isDomainValid != true && domain !== ""
             ? `"${domain}" is not a valid subdomain of notion.stark`
-            : "Your domain name"
+            : "Your domain name: test.notion.stark"
         }
         required={true}
         placeholder="test.notion.stark"
+        className="mb-4"
       />
       <button
         className={btnStyles["nq-button"]}
@@ -144,8 +149,12 @@ export const ResolvingForm = () => {
       >
         Resolve
       </button>
-      <div>{error ? error : null}</div>
-      <div>{address ? address : null}</div>
+      <div className="mt-4">
+        {error ? `Error while resolving domain: ${error}` : null}
+      </div>
+      <div className="mt-4">
+        {address ? `${domain} resolves to ${address}` : null}
+      </div>
     </>
   );
 };
