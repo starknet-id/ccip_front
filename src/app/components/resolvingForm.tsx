@@ -45,7 +45,6 @@ export const ResolvingForm = () => {
       return await tryResolveDomainSID(contract, encodedDomain, []);
     } catch (error) {
       if (error instanceof Error) {
-        console.log("error", error);
         // extract server uri from error message
         const data = extractArrayFromErrorMessageSID(String(error));
         if (!data?.includes("offchain_resolving")) {
