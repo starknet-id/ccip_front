@@ -3,9 +3,9 @@
 import { TextField } from "@mui/material";
 import { useMemo, useState } from "react";
 import btnStyles from "../../../styles/button.module.css";
-import { useIsValidDomain } from "../hooks/useIsValidDomain";
 import { CallData, Provider, shortString } from "starknet";
 import { utils } from "starknetid.js";
+import { useIsValidAddr } from "../hooks/useIsValidAddr";
 
 type DecodedData = {
   errorType: string;
@@ -13,11 +13,11 @@ type DecodedData = {
   uris: string[];
 };
 
-export const ResolvingForm = () => {
-  const [domain, setDomain] = useState("");
-  const [address, setAddress] = useState<string | null>(null);
+export const ReverseResolvingForm = () => {
+  const [domain, setDomain] = useState<string | null>("");
+  const [address, setAddress] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
-  const isDomainValid = useIsValidDomain(domain);
+  const isAddrValid = useIsValidAddr(address);
 
   const provider = useMemo(() => {
     return new Provider({
@@ -28,31 +28,27 @@ export const ResolvingForm = () => {
   }, []);
 
   const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setDomain(event.target.value);
+    setAddress(event.target.value);
     setError(null);
-    setAddress(null);
+    setDomain(null);
   };
 
   const submit = async () => {
     setError(null);
-    if (!isDomainValid) return;
+    if (!isAddrValid) return;
     try {
-      const response = await getAddressFromStarkName(domain);
-      setAddress(response);
+      const response = await getStarkName(address);
+      setDomain(response);
     } catch (error: any) {
       setError(error.message);
     }
   };
 
   // todo: call starknetid.js function instead of this function
-  const getAddressFromStarkName = async (domain: string): Promise<string> => {
+  const getStarkName = async (addr: string): Promise<string> => {
     const contract = process.env.NEXT_PUBLIC_NAMING_CONTRACT as string;
-    const encodedDomain = utils
-      .encodeDomain(domain)
-      .map((elem) => elem.toString(10));
-
     try {
-      return await tryResolveDomainSID(contract, encodedDomain, []);
+      return await tryResolveAddressSID(contract, addr, []);
     } catch (error) {
       if (error instanceof Error) {
         // extract server uri from error message
@@ -76,7 +72,7 @@ export const ResolvingForm = () => {
               serverRes.data.s,
               serverRes.data.max_validity,
             ];
-            return await tryResolveDomainSID(contract, encodedDomain, hint);
+            return await tryResolveAddressSID(contract, addr, hint);
           } catch (error: any) {
             throw new Error(
               `Could not resolve domain on URI ${uri} : ${error.message}`
@@ -90,17 +86,26 @@ export const ResolvingForm = () => {
     }
   };
 
-  const tryResolveDomainSID = async (
+  const tryResolveAddressSID = async (
     contract: string,
-    encodedDomain: string[],
+    address: string,
     hint: any = []
   ): Promise<string> => {
-    const addressData = await provider.callContract({
+    const domainData = await provider.callContract({
       contractAddress: contract,
-      entrypoint: "domain_to_address",
-      calldata: CallData.compile({ domain: encodedDomain, hint }),
+      entrypoint: "address_to_domain",
+      calldata: CallData.compile({ address, hint }),
     });
-    return addressData.result[0];
+
+    const decimalDomain = domainData.result
+      .map((element) => BigInt(element))
+      .slice(1);
+    const stringDomain = utils.decodeDomain(decimalDomain);
+
+    if (!stringDomain) {
+      throw new Error("Could not get stark name");
+    }
+    return stringDomain;
   };
 
   const extractArrayFromErrorMessageSID = (errorMsg: string) => {
@@ -175,33 +180,33 @@ export const ResolvingForm = () => {
 
   return (
     <>
-      <h2 className="mb-3 font-bold">Offchain Resolving</h2>
+      <h2 className="mt-5 mb-3 font-bold">Reverse Offchain Resolving</h2>
       <TextField
         fullWidth
-        value={domain}
+        value={address}
         variant="outlined"
         onChange={onChange}
         label={
-          isDomainValid != true && domain !== ""
-            ? `"${domain}" is not a valid subdomain of notion.stark`
-            : "Your domain name: test.notion.stark"
+          isAddrValid != true && address !== ""
+            ? `"${address}" is not a valid starknet address`
+            : "Your starknet address"
         }
         required={true}
-        placeholder="test.notion.stark"
+        placeholder="0x02207.....571faf"
         className="mb-4"
       />
       <button
         className={btnStyles["nq-button"]}
-        disabled={!isDomainValid}
+        disabled={!isAddrValid}
         onClick={submit}
       >
         Resolve
       </button>
       <div className="mt-4">
-        {error ? `Error while resolving domain: ${error}` : null}
+        {error ? `Error while resolving address: ${error}` : null}
       </div>
       <div className="mt-4">
-        {address ? `${domain} resolves to ${address}` : null}
+        {domain ? `${address} resolves to ${domain}` : null}
       </div>
     </>
   );
