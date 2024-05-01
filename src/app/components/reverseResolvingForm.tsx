@@ -7,12 +7,6 @@ import { Provider, constants } from "starknet";
 import { StarknetIdNavigator } from "starknetid.js";
 import { useIsValidAddr } from "../hooks/useIsValidAddr";
 
-type DecodedData = {
-  errorType: string;
-  domain_slice: string;
-  uris: string[];
-};
-
 export const ReverseResolvingForm = () => {
   const [domain, setDomain] = useState<string | null>("");
   const [address, setAddress] = useState<string>("");

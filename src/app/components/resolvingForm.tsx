@@ -7,12 +7,6 @@ import { useIsValidDomain } from "../hooks/useIsValidDomain";
 import { Provider, constants } from "starknet";
 import { StarknetIdNavigator } from "starknetid.js";
 
-type DecodedData = {
-  errorType: string;
-  domain_slice: string;
-  uris: string[];
-};
-
 export const ResolvingForm = () => {
   const [domain, setDomain] = useState("");
   const [address, setAddress] = useState<string | null>(null);
